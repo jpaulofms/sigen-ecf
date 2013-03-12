@@ -6,7 +6,10 @@ package com.sigen.ecf.main;
 
 import com.sigen.ecf.exception.TratamentoException;
 import com.sigen.ecf.infra.IECFService;
+import com.sigen.ecf.infra.TEFService;
 import com.sigen.ecf.infra.impl.ECFServiceFactory;
+import com.sigen.ecf.infra.impl.TEFServiceFactory;
+import com.sigen.ecf.infra.impl.TefForegroundService;
 import com.sigen.ecf.infra.sync.SigenECFSincImporta;
 import com.sigen.ecf.model.bean.BeanMovimento;
 import com.sigen.ecf.model.bean.BeanOperador;
@@ -17,7 +20,6 @@ import com.sigen.ecf.persistencia.DAOFacade;
 import com.sigen.ecf.view.VIEWCaixa;
 import com.sigen.ecf.view.VIEWLoginIniciarMovimento;
 import com.sigen.ecf.view.VIEWLoginIniciarMovimentoAberto;
-import com.sigen.ecf.view.util.UTILForegroundTef;
 import java.awt.Font;
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -32,6 +34,8 @@ import javax.swing.UIManager;
 public class SigenApplication {
 
     private static Map parametros = new HashMap();
+    
+    private static TEFService tefService;
 
     public static void main(String[] args) {
         configuracaoFontes();
@@ -53,6 +57,8 @@ public class SigenApplication {
 
     private static void movimentoAbertura() {
         try {
+        	
+        	tefService = TEFServiceFactory.getInstance().criarTEFService();
         	
             /* Estado impressora */
             IECFService eCFService = ECFServiceFactory.getInstance().criarECFService();
@@ -140,12 +146,12 @@ public class SigenApplication {
 
     private static void verificaPendente() {
         try {
-            if (UTILForegroundTef.verificaGerenciadorPadrao(true)) {
-                if (UTILForegroundTef.verificaTefPendentes()) {
+            if (tefService.verificaGerenciadorPadrao(true)) {
+                if (tefService.verificaTefPendentes()) {
                     JOptionPane.showMessageDialog(null, "Existem movimento TEF não Impressos ou Confirmados.\n"
                             + "Será necessario cancelá-los.", "Aviso do Sistema", JOptionPane.ERROR_MESSAGE);
 
-                    if (!UTILForegroundTef.cancelaTefPendentes()) {
+                    if (!tefService.cancelaTefPendentes()) {
                         JOptionPane.showMessageDialog(null, "Erro no Cancelamento dos TEF pendentes\n"
                                 + "O Sistema será encerrado!.", "Aviso do Sistema", JOptionPane.ERROR_MESSAGE);
                         System.exit(0);

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="dist/lib/AbsoluteLayout.jar"/>
+	<classpathentry kind="lib" path="dist/lib/beansbinding-1.2.1.jar"/>
+	<classpathentry kind="lib" path="dist/lib/Bematech.jar"/>
+	<classpathentry kind="lib" path="dist/lib/commons-lang-2.5.jar"/>
+	<classpathentry kind="lib" path="dist/lib/commons-net-3.1.jar"/>
+	<classpathentry kind="lib" path="dist/lib/postgresql-9.1-901.jdbc4.jar"/>
+	<classpathentry kind="lib" path="dist/sigen-ecf.jar"/>
+	<classpathentry kind="lib" path="lib/AbsoluteLayout.jar"/>
+	<classpathentry kind="lib" path="lib/absolutelayout/AbsoluteLayout.jar"/>
+	<classpathentry kind="lib" path="lib/beans-binding/beansbinding-1.2.1.jar"/>
+	<classpathentry kind="lib" path="lib/Bematech.jar"/>
+	<classpathentry kind="lib" path="lib/commons-lang-2.5.jar"/>
+	<classpathentry kind="lib" path="lib/commons-net-3.1.jar"/>
+	<classpathentry kind="lib" path="lib/CopyLibs/org-netbeans-modules-java-j2seproject-copylibstask.jar"/>
+	<classpathentry kind="lib" path="lib/postgresql-9.1-901.jdbc4.jar"/>
+	<classpathentry kind="lib" path="SIGEN_ECF_INSTALL/ECF_BEMATECH/bemafi32 (1)/Java/Bematech.jar"/>
+	<classpathentry kind="lib" path="sigen-caixa-mistao.jar"/>
+	<classpathentry kind="lib" path="signed/AbsoluteLayout.jar"/>
+	<classpathentry kind="lib" path="signed/autenticagemco.jar"/>
+	<classpathentry kind="lib" path="signed/axis.jar"/>
+	<classpathentry kind="lib" path="signed/beansbinding-1.2.1.jar"/>
+	<classpathentry kind="lib" path="signed/Bematech.jar"/>
+	<classpathentry kind="lib" path="signed/commons-discovery-0.2.jar"/>
+	<classpathentry kind="lib" path="signed/commons-net-3.1-sources.jar"/>
+	<classpathentry kind="lib" path="signed/commons-net-3.1.jar"/>
+	<classpathentry kind="lib" path="signed/javax.wsdl_1.6.2.v201012040545.jar"/>
+	<classpathentry kind="lib" path="signed/jaxrpc.jar"/>
+	<classpathentry kind="lib" path="signed/mysql-connector-java-5.1.13-bin.jar"/>
+	<classpathentry kind="lib" path="signed/ojdbc6.jar"/>
+	<classpathentry kind="lib" path="signed/org.apache.commons.logging_1.0.4.v201101211617.jar"/>
+	<classpathentry kind="lib" path="signed/saaj.jar"/>
+	<classpathentry kind="lib" path="signed/sigen-caixa-mistao.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="build/classes"/>
+</classpath>
