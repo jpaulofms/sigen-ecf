@@ -1,0 +1,32 @@
+package com.sigen.ecf.infra.sync.exporta;
+
+public class SangriaSincExporta extends SincronizadorExportacao {
+
+    public SangriaSincExporta(String codUltimoMovimento){
+           super(codUltimoMovimento);
+        }
+    
+	protected String[] getColumnNames() {
+		return new String[] { "coo", "gnf", "loja", "cod_ecf", "cod_movimento",
+				"cod_operador", "data", "cod_forma_pagamento", "hora", "valor",
+				"tipo_forma_pagamento" };
+	}
+
+	protected StringBuffer getSelectSql() {
+		StringBuffer sql = new StringBuffer();
+
+		sql.append("select ");
+		sql.append("coo, gnf, loja, cod_ecf, cod_movimento, cod_operador, data, cod_forma_pagamento,");
+		sql.append("hora, valor, tipo_forma_pagamento ");
+
+		sql.append("from mov_sangria ");
+
+                sql.append(" where cast(cod_movimento as integer) > ").append(getCodUltimoMovimento());
+                
+		return sql;
+	}
+
+	protected String getTableToInsert() {
+		return "ecf_mov_sangria";
+	}
+}

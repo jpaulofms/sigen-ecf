@@ -1,0 +1,98 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.sigen.ecf.model.operacao.impl;
+
+import com.sigen.ecf.exception.OperacaoException;
+import com.sigen.ecf.exception.TratamentoException;
+import com.sigen.ecf.infra.IECFService;
+import com.sigen.ecf.infra.impl.ECFServiceFactory;
+import com.sigen.ecf.infra.sync.SigenECFSincExporta;
+import com.sigen.ecf.model.bean.BeanLancamento;
+import com.sigen.ecf.model.bean.BeanMovimento;
+import com.sigen.ecf.model.bean.BeanOperador;
+import com.sigen.ecf.model.bean.BeanSangria;
+import com.sigen.ecf.model.operacao.IOperacao;
+import com.sigen.ecf.model.operacao.Operacao;
+import com.sigen.ecf.persistencia.DAOFacade;
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ *
+ * @author SIGEN 3
+ */
+public class OPMovimentoFechamento extends Operacao implements IOperacao {
+
+    @Override
+    protected boolean validaTransacao(Map parametros) throws OperacaoException {
+        return true;
+    }
+
+    @Override
+    protected void iniciar(Map parametros) throws OperacaoException {
+    }
+
+    @Override
+    protected Map efetuar(Map parametros) throws OperacaoException {
+        Map mpRetorno = parametros;
+        boolean result = false;
+        try {
+            IECFService ecfService = ECFServiceFactory.getInstance().criarECFService();
+            /* Obter a data na impressora */
+            Date data = ecfService.getData();
+
+            /* emitir comprovante de entrada do operador */
+            ecfService.imprimeComprovanteSaidaOperador(
+                    ((BeanOperador) parametros.get("BeanOperador")).getCodOper(),
+                    ((BeanOperador) parametros.get("BeanOperador")).getNome());
+
+            BeanMovimento movimento = (BeanMovimento) parametros.get("BeanMovimento");
+            BeanMovimento movimentoAntigo = movimento.clone();
+            movimento.setDataFechamento(data);
+            movimento.setSaldoDinheiroFechamento(getValorDinheiroEmCaixa(movimento));
+
+            /* Atualizar movimento aberto passando data e hora do fechamento */
+            DAOFacade.atualizarMovimento(movimento, movimentoAntigo);
+
+            mpRetorno.put("BeanMovimento", null);
+            
+            //Gera arquivo para exportar os dados do ECF para o ERP
+            SigenECFSincExporta exportaDados = new SigenECFSincExporta(mpRetorno);
+            exportaDados.run();
+            
+            result = true;
+
+        } catch (Exception ex) {
+            TratamentoException.tratar(ex);
+        }
+
+        mpRetorno.put("result", result);
+        return mpRetorno;
+    }
+
+    @Override
+    protected void finalizar(Map parametros) throws OperacaoException {
+    }
+
+    private BigDecimal getValorDinheiroEmCaixa(BeanMovimento movimento) {
+        BeanLancamento beanLancamento = new BeanLancamento();
+        beanLancamento.setTipoFormaPagamento("DIN");
+        beanLancamento.setCodMov(movimento.getCodMov());
+        String clausula = " GROUP BY TIPO_FORMA_PAGAMENTO";
+        List<BeanLancamento> lsLancamento = DAOFacade.getLsLancamentoPorTipo(beanLancamento, clausula);
+        BeanSangria beanSangria = new BeanSangria();
+        beanSangria.setTipoFormaPagamento("DIN");
+        beanSangria.setCodMov(movimento.getCodMov());
+        List<BeanSangria> lsSangria = DAOFacade.getLsSangriaPorTipo(beanSangria);
+
+        BigDecimal totalDebito = !lsSangria.isEmpty() ? lsSangria.get(0).getValorSangria() : BigDecimal.ZERO;
+        BigDecimal totalCredito = !lsLancamento.isEmpty() ? lsLancamento.get(0).getValorBruto() : BigDecimal.ZERO;
+        BigDecimal saldoDinheiro = totalCredito.subtract(totalDebito);
+
+        return saldoDinheiro;
+    }
+}

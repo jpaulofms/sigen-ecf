@@ -1,0 +1,69 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.sigen.ecf.model.operacao.impl;
+
+import com.sigen.ecf.exception.OperacaoException;
+import com.sigen.ecf.exception.TratamentoException;
+import com.sigen.ecf.infra.IECFService;
+import com.sigen.ecf.infra.impl.ECFServiceFactory;
+import com.sigen.ecf.model.bean.BeanOperador;
+import com.sigen.ecf.model.bean.BeanSangria;
+import com.sigen.ecf.model.operacao.IOperacao;
+import com.sigen.ecf.model.operacao.Operacao;
+import com.sigen.ecf.persistencia.DAOFacade;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author SIGEN 3
+ */
+public class OPSangria extends Operacao implements IOperacao {
+
+    @Override
+    protected boolean validaTransacao(Map parametros) throws OperacaoException {
+        return true;
+    }
+
+    @Override
+    protected void iniciar(Map parametros) throws OperacaoException {
+    }
+
+    @Override
+    protected HashMap efetuar(Map parametros) throws OperacaoException {
+        IECFService ecfService = ECFServiceFactory.getInstance().criarECFService();
+        List< BeanSangria> lsSangria = (List<BeanSangria>) parametros.get("lsSangria");
+        List< String> lsDescricaoForma = (List<String>) parametros.get("lsDescricaoForma");
+
+
+        for (int i = 0; i < lsSangria.size(); i++) {
+            try {
+                BeanSangria sangria = lsSangria.get(i);
+
+                String nomeOperador = ((BeanOperador) parametros.get("BeanOperador")).getNome();
+
+                // IMPRIMIR COMPROVANTE SANGRIA
+                ecfService.efetuarSangria(sangria.getCodOper(), nomeOperador, lsDescricaoForma.get(i), sangria.getValorSangria());
+
+                Date dataAtual = ecfService.getData();
+                sangria.setData(dataAtual);
+                sangria.setCoo(ecfService.getCOO());
+                sangria.setGnf(ecfService.getGNF());
+
+                /* Persistir */
+                DAOFacade.inserirSangria(sangria);
+
+            } catch (Exception ex) {
+                TratamentoException.tratar(ex);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    protected void finalizar(Map parametros) throws OperacaoException {
+    }
+}

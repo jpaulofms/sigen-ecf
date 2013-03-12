@@ -1,0 +1,476 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.sigen.ecf.model.operacao.impl;
+
+import com.sigen.ecf.exception.OperacaoException;
+import com.sigen.ecf.exception.TratamentoException;
+import com.sigen.ecf.infra.IECFService;
+import com.sigen.ecf.infra.impl.ECFServiceFactory;
+import com.sigen.ecf.model.bean.BeanCliente;
+import com.sigen.ecf.model.bean.BeanCondicaoPagamento;
+import com.sigen.ecf.model.bean.BeanDevolucao;
+import com.sigen.ecf.model.bean.BeanLancamento;
+import com.sigen.ecf.model.bean.BeanOperador;
+import com.sigen.ecf.model.bean.BeanVenda;
+import com.sigen.ecf.model.operacao.IOperacao;
+import com.sigen.ecf.model.operacao.Operacao;
+import com.sigen.ecf.model.operacao.OperacaoFactory;
+import com.sigen.ecf.persistencia.DAOFacade;
+import com.sigen.ecf.view.util.UTILForegroundTef;
+import com.sigen.ecf.vo.VOEfetuaPagamentoECF;
+import com.sigen.ecf.vo.VOItemParcelaPagamento;
+import com.sigen.ecf.vo.VOParcelaPagamento;
+import com.sigen.ecf.vo.VOTransacaoTef;
+import java.awt.HeadlessException;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import javax.swing.JOptionPane;
+//import nlink.win32.NLink;
+
+/**
+ *
+ * @author SIGEN 3
+ */
+public class OPFinalizacaoVenda extends Operacao implements IOperacao {
+
+    private IECFService eCFService = ECFServiceFactory.getInstance().criarECFService();
+    private List<VOParcelaPagamento> lsParcelaPagamento;
+    private List<VOTransacaoTef> lsTransacoesTef;
+    private BeanVenda venda;
+    private Map mpRetorno;
+    private BigDecimal valorDesconto;
+    boolean pagamentoOK = true;
+    boolean pagamentoCancelado = false;
+    boolean cupomFechado = false;
+
+    @Override
+    protected boolean validaTransacao(Map parametros) throws OperacaoException {
+        return true;
+    }
+
+    @Override
+    protected void iniciar(Map parametros) throws OperacaoException {
+    }
+
+    @Override
+    protected Map efetuar(Map parametros) throws OperacaoException {
+        mpRetorno = parametros;
+
+        lsParcelaPagamento = (List<VOParcelaPagamento>) parametros.get("lsParcelaPagamento");
+        venda = (BeanVenda) parametros.get("BeanVenda");
+
+        Operacao executarTef = OperacaoFactory.getInstance().criarOPExecutarTef();
+        parametros = executarTef.executar(parametros);
+
+        lsTransacoesTef = (List<VOTransacaoTef>) parametros.get("lsTransacoesTef");
+
+        if ((Boolean) parametros.get("BooleanResult")) {
+            valorDesconto = (BigDecimal) parametros.get("valorDesconto");
+            if (valorDesconto == null) {
+                valorDesconto = BigDecimal.ZERO;
+            }
+            confirmarRecebimentos();
+
+            /* Atualizar Venda */
+            BeanVenda beanVendaNovo = (BeanVenda) parametros.get("BeanVenda");
+            BeanVenda beanVendaAntigo = beanVendaNovo.clone();
+
+
+            if (pagamentoOK) {
+                /* Persistir dados */
+                BeanVenda beanVenda = (BeanVenda) parametros.get("BeanVenda");
+                BeanOperador beanOperador = (BeanOperador) parametros.get("BeanOperador");
+                BeanCliente beanCliente = (BeanCliente) parametros.get("BeanCliente");
+                BeanCondicaoPagamento beanCondicaoPagamento = (BeanCondicaoPagamento) parametros.get("BeanCondicaoPagamento");
+                BigDecimal troco = (BigDecimal) parametros.get("valorTroco");
+
+                for (VOParcelaPagamento pp : lsParcelaPagamento) {
+                    for (VOItemParcelaPagamento ipp : pp.getLsItemParcelaPagamento()) {
+
+                        /* Caso seja uma devolução, atualizar como já utilizada */
+                        if (ipp.getFormaPagamento().getTipo().equals("DEV")) {
+                            BeanDevolucao devolucao = new BeanDevolucao();
+                            devolucao.setCodEcf(beanVenda.getCodEcf());
+                            devolucao.setLoja(beanVenda.getLoja());
+                            devolucao.setCodMov(beanVenda.getCodMov());
+                            devolucao.setCoo(ipp.getReciboDevolucao());
+                            DAOFacade.atualizarDevolucaoUtilizada(devolucao, true);
+                        }
+
+                        BeanLancamento lancamento = new BeanLancamento();
+
+                        lancamento.setDataVencimento(pp.getData());
+                        lancamento.setLoja(beanVenda.getLoja());
+                        lancamento.setCodEcf(beanVenda.getCodEcf());
+                        lancamento.setCodMov(beanVenda.getCodMov());
+                        lancamento.setCodOper(beanOperador.getCodOper());
+                        lancamento.setCodFormaPagamento(ipp.getFormaPagamento().getCodFormaPagto());
+                        lancamento.setTipoFormaPagamento(ipp.getFormaPagamento().getTipo());
+                        lancamento.setCodConveniada(ipp.getConveniada().getCodConveniada());
+                        lancamento.setCodCliente(beanCliente != null ? beanCliente.getCodCliente() : null);
+
+                        /* Caso seja dinheiro, subtrair o valor do troco */// --- MELHORAR - PEGAR ULTIMO EM DINHEIRO
+                        BigDecimal bruto = ipp.getValorItemParcela();
+                        if (lancamento.getTipoFormaPagamento().equals("DIN") && troco.compareTo(BigDecimal.ZERO) > 0) {
+                            bruto = bruto.subtract(troco);
+                            troco = BigDecimal.ZERO;
+                        }
+
+                        lancamento.setValorBruto(bruto);
+
+                        lancamento.setTaxaAdm(ipp.getConveniada().getTaxaAdm() != null ? ipp.getConveniada().getTaxaAdm() : BigDecimal.ZERO);
+                        lancamento.setNumeroAutorizacao(ipp.getNumeroAutorizacao());
+
+                        BigDecimal valorLiquido = lancamento.getValorBruto();
+                        if (lancamento.getTaxaAdm().compareTo(BigDecimal.ZERO) > 0) {
+                            BigDecimal rMult = lancamento.getValorBruto().multiply(lancamento.getTaxaAdm()).setScale(2, BigDecimal.ROUND_HALF_UP);
+                            BigDecimal rDiv = rMult.divide(new BigDecimal(100d));
+                            valorLiquido = lancamento.getValorBruto().subtract(rDiv).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        }
+
+                        lancamento.setValorLiquido(valorLiquido);
+
+                        lancamento.setCodCondicaoPagamento(beanCondicaoPagamento.getCodCondPagto());
+                        lancamento.setNumLancamento(ipp.getIndiceItemParcela());
+                        lancamento.setNumParcela(String.valueOf(pp.getNumeroParcela()));
+
+                        lancamento.setDataLancamento(eCFService.getData());
+                        lancamento.setCoo(beanVenda.getCoo());
+
+                        // Número Recibo de Devolucao
+                        lancamento.setReciboDevolucao(ipp.getReciboDevolucao());
+
+                        if (!ipp.getCheque().isEmpty()) {
+                            lancamento.setChqBanco(ipp.getCheque().getCodBanco());
+                            lancamento.setChqAgencia(ipp.getCheque().getCodAgencia());
+                            lancamento.setChqConta(ipp.getCheque().getContaCorrente());
+                            lancamento.setChqNumero(ipp.getCheque().getNumeroCheque());
+                        }
+
+                        /* Inserindo */
+                        DAOFacade.inserirLancamento(lancamento);
+                    }
+                }
+
+                /* Bean Venda - Atualizar */
+                beanVendaNovo.setValorAcrescimo(BigDecimal.ZERO);
+                beanVendaNovo.setValorDesconto(valorDesconto);
+                beanVendaNovo.setValorSubTotal((BigDecimal) parametros.get("SubTotalVenda"));
+                beanVendaNovo.setValorTotal((BigDecimal) parametros.get("TotalVenda"));
+
+            } else {
+                try {
+                    // ??
+                } catch (Exception ex) {
+                    TratamentoException.tratar(ex);
+                }
+                beanVendaNovo.setIndicadorCancelamento("S");
+
+                /* Caso o cupom já tenha sido fechado e a ECF esteja desligada, sair da aplicação */
+                if (cupomFechado && !eCFService.getECFAtiva()) {
+                    JOptionPane.showMessageDialog(null, "O sistema será encerrado.", "Aviso do Sistema", JOptionPane.WARNING_MESSAGE);
+                    System.exit(1);
+                }
+            }
+
+            /* Atualizar dados da venda */
+            DAOFacade.atualizarVenda(beanVendaNovo, beanVendaAntigo);
+        } else {
+            pagamentoOK = false;
+        }
+
+        mpRetorno.put("BooleanResult", pagamentoOK);
+        return mpRetorno;
+    }
+
+    @Override
+    protected void finalizar(Map parametros) throws OperacaoException {
+    }
+
+    private void cancelarUltimoCupom() {
+        Operacao cancelaVenda = OperacaoFactory.getInstance().criarOPCancelaVenda();
+        mpRetorno = cancelaVenda.executar(mpRetorno);
+    }
+
+    private void confirmarRecebimentos() {
+
+//        User32 user32 = NLink.create(User32.class);
+//        user32.BlockInput(true);
+        if (eCFService.getECFAtiva()) {
+
+            eCFService.abrirGaveta();
+
+            finalizarRecebimentos();
+
+        } else {
+//                user32.BlockInput(false);
+            String[] opcoes = {"Sim", "Não"};
+            int escolha = JOptionPane.showOptionDialog(null, "Erro na impressão. Deseja tentar novamente?", "Aviso do Sistema",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+                    null, opcoes, null);
+            if (escolha == JOptionPane.YES_OPTION) {
+                confirmarRecebimentos();
+            } else {
+                cancelarRecebimentos(true);
+            }
+        }
+    }
+
+    private void finalizarRecebimentos() {
+//        User32 user32 = NLink.create(User32.class);
+//        user32.BlockInput(true);
+
+        /* Finalização do cupom fiscal */
+        finalizarCupomFiscal();
+
+        try {
+            if (lsTransacoesTef != null) {
+                boolean problemaTef = false;
+
+
+                problemaTef = imprimirTransacoesTEF(problemaTef);
+
+                if (!problemaTef) {
+                    confirmarTransacoesTEF();
+                } else {
+                    pagamentoOK = false;
+                }
+
+                //limpeza do buffer;
+                for (VOTransacaoTef tf : lsTransacoesTef) {
+                    UTILForegroundTef.limpaBuffer(tf.getNsu());
+                }
+                UTILForegroundTef.limpaArquivosTemps();
+            }
+
+            //           user32.BlockInput(false);
+
+        } catch (Throwable t) {
+            t.printStackTrace();
+            tratarErrosConfirmacaoRecebimentos(t);
+        }
+    }
+
+    private void finalizarCupomFiscal() {
+        subtotalizarCupom();
+
+        efetuarFormasPagamento();
+
+        fecharCupomFiscal();
+    }
+
+    private void subtotalizarCupom() {
+        try {
+            Integer desconto = 0;
+            String tipo = "A";
+            if (valorDesconto.compareTo(BigDecimal.ZERO) > 0) {
+                desconto = Integer.parseInt(String.valueOf(-1 * valorDesconto.doubleValue()));
+                tipo = "D";
+            }
+
+            eCFService.subTotalizaCupom(desconto.toString(), tipo.toString());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            int escolha = tratarErroImpressoraNaoResponde(ex);
+            if (escolha == JOptionPane.YES_OPTION) {
+                subtotalizarCupom();
+            } else {
+                cancelarRecebimentos(true);
+            }
+        }
+    }
+
+    private void efetuarFormasPagamento() {
+        try {
+            // Grupo de valores por tipo
+            Map tiposPagamentosUtilizados = agruparValorPorTipo();
+
+            // Deixar forma dinheiro por ultimo por conta do troco
+            String indiceDinheiro = "";
+            BigDecimal totalDinheiro = BigDecimal.ZERO;
+
+            Iterator itPagamento = tiposPagamentosUtilizados.keySet().iterator();
+            while (itPagamento.hasNext()) {
+                String keyPagamento = (String) itPagamento.next();
+                VOEfetuaPagamentoECF formaPagamentoECF = (VOEfetuaPagamentoECF) tiposPagamentosUtilizados.get(keyPagamento);
+
+                String dFormaPagamento = keyPagamento.substring(0, keyPagamento.indexOf("="));
+
+                //if (Caixa.cupomAberto) {
+                if (!dFormaPagamento.equalsIgnoreCase("DINHEIRO")) {
+                    eCFService.efetuarPagamento(dFormaPagamento,
+                            formaPagamentoECF.getTotalTipo(),
+                            formaPagamentoECF.getQuantidadeParcelas().toString(),
+                            formaPagamentoECF.getDescricaoConveniada());
+                } else {
+                    indiceDinheiro = dFormaPagamento;
+                    totalDinheiro = formaPagamentoECF.getTotalTipo();
+                }
+                //}
+            }
+            if (!indiceDinheiro.equals("") && totalDinheiro.compareTo(BigDecimal.ZERO) > 0) {
+                eCFService.efetuarPagamento(indiceDinheiro, totalDinheiro, "1", "");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            int escolha = tratarErroImpressoraNaoResponde(ex);
+            if (escolha == JOptionPane.YES_OPTION) {
+                efetuarFormasPagamento();
+            } else {
+                cancelarRecebimentos(true);
+            }
+        }
+    }
+
+    private void fecharCupomFiscal() {
+        try {
+            /* Fechar cupom passando mensagem a ser exibida */
+            // TODO: Onde verificar se o cupom está aberto ?
+            StringBuilder mensagemFechamento = new StringBuilder();
+            mensagemFechamento.append("MD-5"/* Onde ?*/);
+            mensagemFechamento.append(getMensagemCupom());
+
+            /* Fechar cupom */
+            eCFService.fecharCupom(mensagemFechamento.toString());
+            //}
+            /* Quando fechar o cupom deve registrar num booleano para em caso de erro, conseguir cancelar o cupom */
+            cupomFechado = true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            int escolha = tratarErroImpressoraNaoResponde(ex);
+            if (escolha == JOptionPane.YES_OPTION) {
+                fecharCupomFiscal();
+            } else {
+                cancelarRecebimentos(true);
+            }
+        }
+    }
+
+    private String getMensagemCupom() {
+        return (char) 13 + (char) 10 + "";
+    }
+
+    private void cancelarRecebimentos(boolean auto) {
+        String[] opcoes = {"Sim", "Não"};
+        int escolha = JOptionPane.YES_OPTION;
+        //Auto opção para não exibir a mensagem a baixo e cancelar direto
+        if (!auto) {
+            escolha = JOptionPane.showOptionDialog(null, "Confirmar o cancelamento dos pagamentos?" + (char) 13 + (char) 10
+                    + "Se houver pagamento com TEF, o pagamento com TEF será cancelado!," + (char) 13 + (char) 10
+                    + "Deseja Continuar?", "Encerrar venda.", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, opcoes, null);
+        }
+        if (escolha == JOptionPane.YES_OPTION) {
+            try {
+                // CNC ou NCF
+                UTILForegroundTef.cancelaTefPendentes();
+                UTILForegroundTef.limpaArquivosTemps();
+                pagamentoOK = false;
+                //if (Caixa.cupomAberto && isPreVenda) {
+                //  Caixa.aCBrECF.cancelaCupom(); // CANCELAR CUPOM
+                //}
+                //               pagamentoOK = false;
+                //               pagamentoCancelado = true;
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, ex.getMessage(), "Erro do Sistema", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private Map agruparValorPorTipo() {
+        // COLETANDO TOTAIS DE FORMAS DE PAGAMENTOS
+        Map pagamentosUtilizados = new LinkedHashMap();
+        VOEfetuaPagamentoECF efetuaPagamentoVO;
+        for (VOParcelaPagamento pp : lsParcelaPagamento) {
+            for (VOItemParcelaPagamento ipp : pp.getLsItemParcelaPagamento()) {
+
+                String keyString = ipp.getKeyString();
+
+                /* O indice da forma será a descrição da forma de pagamento */
+                efetuaPagamentoVO = (VOEfetuaPagamentoECF) pagamentosUtilizados.get(keyString);
+                BigDecimal totalTipo = ipp.getValorItemParcela();
+
+                if (efetuaPagamentoVO != null) {
+                    /* Conveniada, se houver */
+                    if (!ipp.getConveniada().isEmpty()) {
+                        efetuaPagamentoVO.setDescricaoConveniada(ipp.getConveniada().getDescricao());
+                    }
+
+                    efetuaPagamentoVO.setTotalTipo(efetuaPagamentoVO.getTotalTipo().add(totalTipo));
+                    efetuaPagamentoVO.setQuantidadeParcelas(efetuaPagamentoVO.getQuantidadeParcelas() + 1);
+                } else {
+                    efetuaPagamentoVO = new VOEfetuaPagamentoECF();
+                    efetuaPagamentoVO.setDescricaoFormaPagamento(ipp.getFormaPagamento().getDescricao());
+                    efetuaPagamentoVO.setTotalTipo(totalTipo);
+                    efetuaPagamentoVO.setQuantidadeParcelas(1);
+
+                    /* Conveniada, se houver */
+                    if (!ipp.getConveniada().isEmpty()) {
+                        efetuaPagamentoVO.setDescricaoConveniada(ipp.getConveniada().getDescricao());
+                    }
+                }
+
+                pagamentosUtilizados.put(keyString, efetuaPagamentoVO);
+            }
+        }
+        return pagamentosUtilizados;
+    }
+
+    private void confirmarTransacoesTEF() {
+        for (VOTransacaoTef tf : lsTransacoesTef) {
+            if (!tf.getBeanConveniada().getDescricao().equals("")) {
+                UTILForegroundTef.confirmaTransacao(tf.getNsu());
+                tf.setDataTransacao(UTILForegroundTef.data);
+                tf.setHoraTransacao(UTILForegroundTef.hora);
+            }
+        }
+//            Paf.gravaR06("CC");
+    }
+
+    private void tratarErrosConfirmacaoRecebimentos(Throwable t) throws HeadlessException {
+        int escolha = tratarErroImpressoraNaoResponde(t);
+        if (escolha == JOptionPane.YES_OPTION) {
+            if (escolha == JOptionPane.YES_OPTION) {
+                finalizarRecebimentos();
+            } else {
+                cancelarRecebimentos(true);
+            }
+        }
+    }
+
+    private int tratarErroImpressoraNaoResponde(Throwable ex) throws HeadlessException {
+//        User32 user32 = NLink.create(User32.class);
+//        user32.BlockInput(false);
+        ex.printStackTrace();
+        String[] opcoes = {"Sim", "Não"};
+        int escolha = JOptionPane.showOptionDialog(null, "Impressora não responde. Deseja continuar?", "Aviso do Sistema",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, opcoes, null);
+        return escolha;
+    }
+
+    private boolean imprimirTransacoesTEF(boolean estado) {
+
+        /* Imprimir comprovantes */
+        Map parametro = new HashMap();
+        parametro.put("lsTransacoesTef", lsTransacoesTef);
+        parametro.put("BooleanResult", estado);
+        parametro.put("BeanVenda", venda);
+
+        Operacao relComrovante1 = OperacaoFactory.getInstance().criarOPRelatorioComprovanteTEF1();
+        parametro = relComrovante1.executar(parametro);
+
+//        Operacao relComrovante2 = OperacaoFactory.getInstance().criarOPRelatorioComprovanteTEF2();
+        //      relComrovante2.executar(parametro);
+
+        boolean result = (Boolean) parametro.get("BooleanResult");
+
+        return result;
+    }
+}

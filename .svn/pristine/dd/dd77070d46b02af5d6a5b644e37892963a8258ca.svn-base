@@ -1,0 +1,114 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.sigen.ecf.model.operacao.impl;
+
+import com.sigen.ecf.exception.OperacaoException;
+import com.sigen.ecf.infra.IECFService;
+import com.sigen.ecf.infra.impl.ECFServiceFactory;
+import com.sigen.ecf.model.bean.BeanMovimento;
+import com.sigen.ecf.model.bean.BeanSpedFiscal;
+import com.sigen.ecf.model.bean.BeanSpedFiscalAliquota;
+import com.sigen.ecf.model.operacao.IOperacao;
+import com.sigen.ecf.model.operacao.Operacao;
+import com.sigen.ecf.persistencia.DAOFacade;
+import com.sigen.ecf.view.util.UTILBiblioteca;
+import java.util.Map;
+
+/**
+ *
+ * @author SIGEN 3
+ */
+public class OPReducaoZ extends Operacao implements IOperacao {
+
+    @Override
+    protected boolean validaTransacao(Map parametros) throws OperacaoException {
+        if ((Boolean) parametros.get("CupomAberto")) {
+            UTILBiblioteca.informarOperacaoNaoPermitida("Cupom Aberto");
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected void iniciar(Map parametros) throws OperacaoException {
+    }
+
+    @Override
+    protected Map efetuar(Map parametros) throws OperacaoException {
+        Map mpRetorno = parametros;
+
+        IECFService eCFService = ECFServiceFactory.getInstance().criarECFService();
+        eCFService.emitirReducaoZ();
+        BeanMovimento movimento = (BeanMovimento) parametros.get("BeanMovimento");
+
+
+        BeanSpedFiscal spedFiscal = coletarDadosUltimaReducao(eCFService.dadosUltimaReducaoGerar(), movimento);
+        spedFiscal.setModeloEcf(eCFService.getModelo());
+        spedFiscal.setSerieEcf(eCFService.getSerie());
+        spedFiscal.setVendaBrutaDiaria("00000000000000");
+
+        DAOFacade.inserirSpedFiscal(spedFiscal);
+
+        for (BeanSpedFiscalAliquota sfA : spedFiscal.getLsTotalizadoresParciais()) {
+            DAOFacade.inserirSpedFiscalAliquota(sfA);
+        }
+
+        /* Persistir dados */
+        return mpRetorno;
+    }
+
+    @Override
+    protected void finalizar(Map parametros) throws OperacaoException {
+    }
+
+    private BeanSpedFiscal coletarDadosUltimaReducao(String dadosUltimaReducao, BeanMovimento movimento) {
+        String[] sDados = dadosUltimaReducao.split(",");
+
+        BeanSpedFiscal beanSpedFiscal = new BeanSpedFiscal();
+        beanSpedFiscal.setCodEcf(movimento.getCodEcf());
+        beanSpedFiscal.setCodMov(movimento.getCodMov());
+        beanSpedFiscal.setLoja(movimento.getLoja());
+
+        beanSpedFiscal.setContadorCro(sDados[1]);
+        beanSpedFiscal.setContadorCrz(sDados[2]);
+        beanSpedFiscal.setContadorCoo(sDados[3]);
+        beanSpedFiscal.setTotalizadorGeral(sDados[15]);
+        beanSpedFiscal.setDataReferencia(sDados[36]);
+
+        Integer idAliq = DAOFacade.getIdAliquota();
+
+        /* Isenção */
+        idAliq++;
+        beanSpedFiscal.addAliquota("I1", sDados[17], idAliq);
+
+        /* Não incidência */
+        idAliq++;
+        beanSpedFiscal.addAliquota("N1", sDados[18], idAliq);
+
+        /* Substituição tributária */
+        idAliq++;
+        beanSpedFiscal.addAliquota("F1", sDados[19], idAliq);
+
+
+        int a = 0;
+        int b = 4;
+        int c = 0;
+        int d = 14;
+        for (int i = 0; i < 16; i++) {
+            String aliq = sDados[35].substring(a, b);
+            String totalAliq = sDados[16].substring(c, d);
+            if (!aliq.equals("0000")) {
+                idAliq++;
+                beanSpedFiscal.addAliquota(aliq, totalAliq, idAliq);
+            }
+            a = b;
+            c = d;
+            b = b + 4;
+            d = d + 14;
+        }
+
+        return beanSpedFiscal;
+    }
+}

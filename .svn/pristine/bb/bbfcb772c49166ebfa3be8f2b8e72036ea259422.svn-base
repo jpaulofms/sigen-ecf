@@ -1,0 +1,19 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.sigen.ecf.exception;
+
+import javax.swing.JOptionPane;
+
+/**
+ *
+ * @author SIGEN 3
+ */
+public class TratamentoException {
+
+    public static void tratar(Exception ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(null, "Erro desconhecido", "Aviso do Sistema", JOptionPane.ERROR_MESSAGE);
+    }
+}

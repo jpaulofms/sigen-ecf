@@ -1,0 +1,15 @@
+insert into ecf_mov_movimento (coo,gnf,loja,cod_ecf,cod_movimento,cod_operador,data_abertura,data_fechamento,cod_supervisor,hora_abertura,hora_fechamento,saldo_dinheiro_abertura,saldo_dinheiro_fechamento) values ('000006','000005','0002','0002','12','1','2013-01-29','2013-01-29','2','20:15:01','20:16:12','0.00','1.20');
+
+insert into ecf_mov_venda (coo,loja,cod_ecf,data_emissao,data_cancelamento,valor_sub_total,valor_desconto,valor_acrescimo,valor_total,indicador_cancelamento,nome_adquirente,cpf_cnpj_adquirente,cod_movimento,cod_operador,hora_emissao,hora_cancelamento) values ('000007','0002','0002','2013-01-29',null,'1.20','0.00','0.00','1.20','N','','','12','1','20:15:21',null);
+
+insert into ecf_mov_item_venda (cod_movimento,cod_operador,coo,loja,cod_ecf,item,cod_prod,descricao,quantidade,cod_und,valor_unitario,valor_desconto,valor_acrescimo,st,valor_total,indicador_cancelamento,qtd_emb,icms_st,icms_red_bc,icms_aliq,icms_bc,icms_valor,ipi_st,ipi_aliq,ipi_bc,ipi_valor,pis_st,pis_aliq,pis_bc,pis_valor,cofins_st,cofins_aliq,cofins_bc,cofins_valor,iat,casas_decimais_quantidade,casas_decimais_valor,data_emissao,data_cancelamento,hora_emissao,hora_cancelamento,cfop,cod_vendedor) values ('12','1','000007','0002','0002','1','226065','PALITO INDIANO','1.00','UN','1.20','0.00','0.00','I','1.20','N','1','00','0.00','25.00','1.20','0.30','','0.00','1.20','0.00','04','0.00','1.20','0.00','04','0.00','1.20','0.00','A','2','2.00','2013-01-29',null,'20:15:37',null,'5102',null);
+
+insert into ecf_mov_lancamento (loja,cod_ecf,cod_movimento,cod_operador,coo,cod_forma_pagamento,tipo_forma_pagamento,cod_conveniada,cod_cliente,valor_bruto,valor_liquido,data_lancamento,hora_lancamento,cod_condicao_pagamento,num_lancamento,num_parcela,taxa_adm,chq_banco,chq_agencia,chq_conta,chq_numero,data_vencimento) values ('0002','0002','12','1','000007','3','DIN',null,null,'1.20','1.20','2013-01-29','20:15:58','502','001','1','0.00',null,null,null,null,'2013-01-29');
+
+
+
+
+
+
+
+#$@SIGEN@$#

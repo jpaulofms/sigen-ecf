@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<fabricante>
+	<dll>
+		<nome>Bematech.dll</nome>
+		<chave>
+			<modulo>6F145B30002E300BD49279DAF920E6512CC395CC89355DA8792C671A01A7DF93FEF8DCBE19BE939B4F4DE7E2D4D8AACBA7D11E1F80C8904763529740D63EF16BA7138007A83CE5E753960C8F4491DA32E09BE16C41DFFC296EF174DC62399D3D30320789F9425ED54C1C8117BC8EF53E7B27A2FCD2F9E5AC4DFBFBA0971B00F9</modulo> 
+			<expoente_publico>03</expoente_publico>
+		</chave>
+		<modelo>MP-20 FI II</modelo>
+		<modelo>MP-40 FI II</modelo>
+		<modelo>MP-2000 TH FI</modelo>
+		<modelo>MP-2100 TH FI</modelo>
+		<modelo>MP-3000 TH FI</modelo>
+		<modelo>MP-4000 TH FI</modelo>
+		<modelo>MP-6000 TH FI</modelo>
+		<modelo>MP-6100 TH FI</modelo>
+		<modelo>MP-7000 TH FI</modelo>
+		<modelo>MP-25 FI</modelo>
+		<modelo>MP-50 FI</modelo>
+	</dll>
+</fabricante>

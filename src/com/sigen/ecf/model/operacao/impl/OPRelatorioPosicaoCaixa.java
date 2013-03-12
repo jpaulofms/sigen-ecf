@@ -1,0 +1,266 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.sigen.ecf.model.operacao.impl;
+
+import com.sigen.ecf.exception.OperacaoException;
+import com.sigen.ecf.exception.TratamentoException;
+import com.sigen.ecf.infra.IECFService;
+import com.sigen.ecf.infra.impl.ECFServiceFactory;
+import com.sigen.ecf.model.bean.BeanLancamento;
+import com.sigen.ecf.model.bean.BeanMovimento;
+import com.sigen.ecf.model.bean.BeanOperador;
+import com.sigen.ecf.model.bean.BeanSangria;
+import com.sigen.ecf.model.bean.BeanSuprimento;
+import com.sigen.ecf.model.operacao.IOperacao;
+import com.sigen.ecf.model.operacao.Operacao;
+import com.sigen.ecf.persistencia.DAOFacade;
+import com.sigen.ecf.view.util.UTILBiblioteca;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ *
+ * @author SIGEN 3
+ */
+public class OPRelatorioPosicaoCaixa extends Operacao implements IOperacao {
+
+    private IECFService eCFService;
+    BeanOperador beanOperador;
+    BeanMovimento beanMovimento;
+    Boolean saidaOperador;
+
+    @Override
+    protected boolean validaTransacao(Map parametros) throws OperacaoException {
+        if ((Boolean) parametros.get("CupomAberto")) {
+            UTILBiblioteca.informarOperacaoNaoPermitida("Cupom Aberto");
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected void iniciar(Map parametros) throws OperacaoException {
+        TratamentoException.avisouPapel = false;
+    }
+
+    @Override
+    protected Map efetuar(Map parametros) throws OperacaoException {
+        Map mpRetorno = parametros;
+
+        eCFService = ECFServiceFactory.getInstance().criarECFService();
+        beanOperador = (BeanOperador) parametros.get("BeanOperador");
+        beanMovimento = (BeanMovimento) parametros.get("BeanMovimento");
+        saidaOperador = parametros.get("saidaOperador") != null ? (Boolean) parametros.get("saidaOperador") : false;
+
+        imprimirPosicaoCaixa(
+                beanOperador.getCodOper(),
+                beanOperador.getNome(),
+                beanMovimento.getCodEcf(),
+                beanMovimento.getDataAbertura(),
+                saidaOperador);
+
+        return mpRetorno;
+    }
+
+    @Override
+    protected void finalizar(Map parametros) throws OperacaoException {
+        TratamentoException.avisouPapel = false;
+    }
+
+    private BigDecimal getFundoDeTroco() {
+        return beanMovimento.getSaldoDinheiroAbertura();
+    }
+
+    private List<BeanSangria> getLsSangria() {
+        BeanSangria beanSangria = new BeanSangria();
+        beanSangria.setCodMov(beanMovimento.getCodMov());
+        return DAOFacade.getLsSangriaPorTipo(beanSangria);
+    }
+
+    private List<BeanLancamento> getLsLancamentoPorTipo() {
+        BeanLancamento beanLancamento = new BeanLancamento();
+        beanLancamento.setCodMov(beanMovimento.getCodMov());
+        String clausula = " GROUP BY TIPO_FORMA_PAGAMENTO";
+        return DAOFacade.getLsLancamentoPorTipo(beanLancamento, clausula);
+    }
+
+    private List<BeanSuprimento> getLsSuprimento() {
+        BeanSuprimento beanSuprimento = new BeanSuprimento();
+        beanSuprimento.setCodMov(beanMovimento.getCodMov());
+
+        return DAOFacade.getLsSuprimento(beanSuprimento);
+    }
+
+    private void imprimirPosicaoCaixa(String codOper, String nomeOper, String codEcf, Date dataHora, boolean flagSaida) {
+        DecimalFormat df = new DecimalFormat("#,###,##0.00");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy");
+        List<BeanSangria> lsSangria = getLsSangria();
+        List<BeanLancamento> lsLancamento = getLsLancamentoPorTipo();
+        List<BeanSuprimento> lsSuprimento = getLsSuprimento();
+        BigDecimal valorFundoTroco = getFundoDeTroco();
+
+
+        String posCaixa = "               POSICAO DE CAIXA                \r\n";
+
+        if (flagSaida) {
+            posCaixa = "     POSICAO DE CAIXA DA SAIDA DO OPERADOR      \r\n";
+        }
+
+        String pulaLinha = "\r\n";
+
+        String cabecalho = "----------------------------------------------\r\n";
+        cabecalho += posCaixa;
+        cabecalho += "----------------------------------------------\r\n";
+        cabecalho += "OPERADOR......: " + codOper + " - " + nomeOper + "\r\n";
+        cabecalho += "ECF...........: " + codEcf + "\r\n";
+        cabecalho += "DATA..........: " + sdf.format(dataHora);
+        cabecalho += pulaLinha;
+
+        String fundoCaixa = "                Fundo de Troco                \r\n";
+        fundoCaixa += pulaLinha;
+        fundoCaixa += "Soma........................: R$ " + df.format(valorFundoTroco) + "\r\n";
+
+        String suprimento = "                 Suprimento                \r\n";
+        suprimento += pulaLinha;
+
+
+        String sangria = "                   Sangria                \r\n";
+        sangria += "Forma                         Valor \r\n";
+        //SOMA SANGRIA
+
+        String recebimentoBruto = "                Recebimento Bruto                \r\n";
+        recebimentoBruto += "Forma                         Valor\r\n";
+        //SOMA RECEBIMENTOS
+
+        String recebimentoLiquido = "                Recebimento Líquido                \r\n";
+        recebimentoLiquido += "Forma                         Valor\r\n";
+        //SOMA RECEBIMENTOS
+
+        //++++++++++++++++++++++++++++++++++++++++++++++++ IMPRESSÃO ++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+
+        try {
+            eCFService.imprimirRelatorioGerencial(cabecalho + (char) 13 + (char) 10);
+            eCFService.imprimirRelatorioGerencial(fundoCaixa + (char) 13 + (char) 10);
+
+            // SUPRIMENTO
+            eCFService.imprimirRelatorioGerencial(suprimento + (char) 13 + (char) 10);
+
+            BigDecimal somaSuprimento = BigDecimal.ZERO;
+            for (BeanSuprimento sup : lsSuprimento) {
+                String descricao = "DINHEIRO";
+                String lSuprimento = descricao + "                           " + String.valueOf(df.format(sup.getValor()));
+                eCFService.imprimirRelatorioGerencial(lSuprimento + (char) 13 + (char) 10);
+                somaSuprimento = somaSuprimento.add(sup.getValor());
+            }
+            eCFService.imprimirRelatorioGerencial("Soma........................: R$ " + String.valueOf(df.format(somaSuprimento)) + "\r\n" + (char) 13 + (char) 10);
+
+
+            // SANGRIA
+            eCFService.imprimirRelatorioGerencial(sangria + (char) 13 + (char) 10);
+            BigDecimal somaSangria = BigDecimal.ZERO;
+            BigDecimal sangriaDinheiro = BigDecimal.ZERO;
+            BigDecimal sangriaCheque = BigDecimal.ZERO;
+            for (BeanSangria beanSangria : lsSangria) {
+                String descricao = getDescricaoFormaPagamento(beanSangria.getTipoFormaPagamento());
+                if (beanSangria.getTipoFormaPagamento().equals("DIN")) {
+                    sangriaDinheiro = beanSangria.getValorSangria();
+                } else {
+                    sangriaCheque = beanSangria.getValorSangria();
+                }
+
+                String lSangria = descricao + "                           " + String.valueOf(df.format(beanSangria.getValorSangria()));
+                eCFService.imprimirRelatorioGerencial(lSangria + (char) 13 + (char) 10);
+                somaSangria = somaSangria.add(beanSangria.getValorSangria());
+            }
+            eCFService.imprimirRelatorioGerencial("Soma........................: R$ " + String.valueOf(df.format(somaSangria)) + "\r\n" + (char) 13 + (char) 10);
+
+            /* Recebimento Bruto */
+            eCFService.imprimirRelatorioGerencial(recebimentoBruto + (char) 13 + (char) 10);
+            BigDecimal totalBruto = BigDecimal.ZERO;
+            for (BeanLancamento beanLancamento : lsLancamento) {
+                /* Caso forma seja dinheiro subtrair o valor em suprimento efetuado */
+                if (beanLancamento.getTipoFormaPagamento().equals("DIN") && somaSuprimento.compareTo(BigDecimal.ZERO) > 0) {
+                    beanLancamento.setValorBruto(beanLancamento.getValorBruto().subtract(somaSuprimento));
+                }
+                /* Subtrair Fundo de troco */
+                if (beanLancamento.getTipoFormaPagamento().equals("DIN") && valorFundoTroco.compareTo(BigDecimal.ZERO) > 0) {
+                    beanLancamento.setValorBruto(beanLancamento.getValorBruto().subtract(valorFundoTroco));
+                }
+
+                if (beanLancamento.getValorBruto().compareTo(BigDecimal.ZERO) > 0) {
+                    String descricao = getDescricaoFormaPagamento(beanLancamento.getTipoFormaPagamento());
+                    String lRecebimento = descricao + "                " + df.format(beanLancamento.getValorBruto());
+                    eCFService.imprimirRelatorioGerencial(lRecebimento + (char) 13 + (char) 10);
+                    totalBruto = totalBruto.add(beanLancamento.getValorBruto());
+                }
+            }
+            eCFService.imprimirRelatorioGerencial("Soma........................: R$ " + df.format(totalBruto) + "\r\n" + (char) 13 + (char) 10);
+
+            eCFService.imprimirRelatorioGerencial(recebimentoLiquido + (char) 13 + (char) 10);
+            BigDecimal totalLiquido = BigDecimal.ZERO;
+            for (BeanLancamento beanLancamento : lsLancamento) {
+                /* subtrair o valor das sangrias. Dinheiro e cheque */
+                if (beanLancamento.getTipoFormaPagamento().equals("DIN") && beanLancamento.getValorBruto().compareTo(BigDecimal.ZERO) > 0) {
+                    beanLancamento.setValorBruto(beanLancamento.getValorBruto().subtract(sangriaDinheiro));
+                }
+
+                if (beanLancamento.getTipoFormaPagamento().equals("CHE")) {
+                    beanLancamento.setValorBruto(beanLancamento.getValorBruto().subtract(sangriaCheque));
+                }
+
+                if (beanLancamento.getValorBruto().compareTo(BigDecimal.ZERO) > 0) {
+                    String descricao = getDescricaoFormaPagamento(beanLancamento.getTipoFormaPagamento());
+                    String lRecebimento = descricao + "                " + df.format(beanLancamento.getValorBruto());
+                    eCFService.imprimirRelatorioGerencial(lRecebimento + (char) 13 + (char) 10);
+                    totalLiquido = totalLiquido.add(beanLancamento.getValorBruto());
+                }
+            }
+            eCFService.imprimirRelatorioGerencial("Soma........................: R$ " + df.format(totalLiquido) + "\r\n" + (char) 13 + (char) 10);
+
+            BigDecimal totalDebito = somaSangria;
+            BigDecimal totalCreditos = valorFundoTroco.add(totalBruto).add(somaSuprimento);
+            BigDecimal valorEmCaixa = totalCreditos.subtract(totalDebito);
+
+            String comprovantePosicaoCaixaFim = "----------------------------------------------\r\n";
+            comprovantePosicaoCaixaFim += "Valor em Caixa..............: R$ " + df.format(valorEmCaixa) + "\r\n";
+            comprovantePosicaoCaixaFim += "----------------------------------------------\r\n";
+            eCFService.imprimirRelatorioGerencial(comprovantePosicaoCaixaFim + (char) 13 + (char) 10);
+
+
+        } catch (Exception ex) {
+            TratamentoException.tratar(ex);
+        } finally {
+            //FECHAR RELATÓRIO GERENCIAL
+            eCFService.fecharRelatorioGerencial();
+        }
+    }
+
+    private String getDescricaoFormaPagamento(String tipoPagamento) {
+        String descricao = "";
+        if (tipoPagamento.equals("DIN")) {
+            descricao = "DINHEIRO";
+        } else if (tipoPagamento.equals("CHE")) {
+            descricao = "CHEQUE";
+        } else if (tipoPagamento.equals("CART_TEF_DEB")) {
+            descricao = "CART DÉBITO";
+        } else if (tipoPagamento.equals("CART_TEF_CRED")) {
+            descricao = "CART CRÉDITO";
+        } else if (tipoPagamento.equals("CART_POS_DEB")) {
+            descricao = "DEB POS";
+        } else if (tipoPagamento.equals("CART_POS_CRED")) {
+            descricao = "CRED POS";
+        } else if (tipoPagamento.equals("CRE")) {
+            descricao = "CREDIÁRIO";
+        } else if (tipoPagamento.equals("DEV")) {
+            descricao = "DEVOLUCAO";
+        }
+
+        return descricao;
+    }
+}
