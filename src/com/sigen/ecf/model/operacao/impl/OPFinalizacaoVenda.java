@@ -17,10 +17,7 @@ import javax.swing.JOptionPane;
 import com.sigen.ecf.exception.OperacaoException;
 import com.sigen.ecf.exception.TratamentoException;
 import com.sigen.ecf.infra.IECFService;
-import com.sigen.ecf.infra.TEFService;
 import com.sigen.ecf.infra.impl.ECFServiceFactory;
-import com.sigen.ecf.infra.impl.TEFServiceFactory;
-import com.sigen.ecf.infra.impl.TefForegroundService;
 import com.sigen.ecf.model.bean.BeanCliente;
 import com.sigen.ecf.model.bean.BeanCondicaoPagamento;
 import com.sigen.ecf.model.bean.BeanDevolucao;
@@ -31,6 +28,7 @@ import com.sigen.ecf.model.operacao.IOperacao;
 import com.sigen.ecf.model.operacao.Operacao;
 import com.sigen.ecf.model.operacao.OperacaoFactory;
 import com.sigen.ecf.persistencia.DAOFacade;
+import com.sigen.ecf.view.util.UTILForegroundTef;
 import com.sigen.ecf.vo.VOEfetuaPagamentoECF;
 import com.sigen.ecf.vo.VOItemParcelaPagamento;
 import com.sigen.ecf.vo.VOParcelaPagamento;
@@ -274,13 +272,6 @@ public class OPFinalizacaoVenda extends Operacao implements IOperacao {
 	}
 
 	private void finalizarRecebimentos() {
-<<<<<<< HEAD
-=======
-
-		TEFService tefService = TEFServiceFactory.getInstance()
-				.criarTEFService();
-
->>>>>>> semtef
 		// User32 user32 = NLink.create(User32.class);
 		// user32.BlockInput(true);
 
@@ -289,15 +280,10 @@ public class OPFinalizacaoVenda extends Operacao implements IOperacao {
 
 		try {
 			if (lsTransacoesTef != null) {
-<<<<<<< HEAD
-
-=======
->>>>>>> semtef
 				boolean problemaTef = false;
 
 				problemaTef = imprimirTransacoesTEF(problemaTef);
 
-<<<<<<< HEAD
 				Thread thread = new Thread(new Runnable() {
 					@Override
 					public void run() {
@@ -314,22 +300,10 @@ public class OPFinalizacaoVenda extends Operacao implements IOperacao {
 
 				if (!problemaTef) {
 					thread.start();
-=======
-				if (!problemaTef) {
-					confirmarTransacoesTEF();
->>>>>>> semtef
 				} else {
 					pagamentoOK = false;
 				}
 
-<<<<<<< HEAD
-=======
-				// limpeza do buffer;
-				for (VOTransacaoTef tf : lsTransacoesTef) {
-					tefService.limpaBuffer(tf.getNsu());
-				}
-				tefService.limpaArquivosTemps();
->>>>>>> semtef
 			}
 
 			// user32.BlockInput(false);
@@ -449,13 +423,6 @@ public class OPFinalizacaoVenda extends Operacao implements IOperacao {
 	}
 
 	private void cancelarRecebimentos(boolean auto) {
-<<<<<<< HEAD
-=======
-
-		TEFService tefService = TEFServiceFactory.getInstance()
-				.criarTEFService();
-
->>>>>>> semtef
 		String[] opcoes = { "Sim", "Não" };
 		int escolha = JOptionPane.YES_OPTION;
 		// Auto opção para não exibir a mensagem a baixo e cancelar direto
@@ -475,13 +442,8 @@ public class OPFinalizacaoVenda extends Operacao implements IOperacao {
 		if (escolha == JOptionPane.YES_OPTION) {
 			try {
 				// CNC ou NCF
-<<<<<<< HEAD
 				UTILForegroundTef.cancelaTefPendentes();
 				UTILForegroundTef.limpaArquivosTemps();
-=======
-				tefService.cancelaTefPendentes();
-				tefService.limpaArquivosTemps();
->>>>>>> semtef
 				pagamentoOK = false;
 				// if (Caixa.cupomAberto && isPreVenda) {
 				// Caixa.aCBrECF.cancelaCupom(); // CANCELAR CUPOM
@@ -542,22 +504,11 @@ public class OPFinalizacaoVenda extends Operacao implements IOperacao {
 	}
 
 	private void confirmarTransacoesTEF() {
-<<<<<<< HEAD
 		for (VOTransacaoTef tf : lsTransacoesTef) {
 			if (!tf.getBeanConveniada().getDescricao().equals("")) {
 				UTILForegroundTef.confirmaTransacao(tf.getNsu());
 				tf.setDataTransacao(UTILForegroundTef.data);
 				tf.setHoraTransacao(UTILForegroundTef.hora);
-=======
-		TEFService tefService = TEFServiceFactory.getInstance()
-				.criarTEFService();
-
-		for (VOTransacaoTef tf : lsTransacoesTef) {
-			if (!tf.getBeanConveniada().getDescricao().equals("")) {
-				tefService.confirmaTransacao(tf.getNsu());
-				tf.setDataTransacao(TefForegroundService.data);
-				tf.setHoraTransacao(TefForegroundService.hora);
->>>>>>> semtef
 			}
 		}
 		// Paf.gravaR06("CC");
