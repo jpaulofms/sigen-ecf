@@ -185,46 +185,41 @@ public class AdaptorECFService extends ECFService implements ECFEstado {
 
     @Override
     public void inserirDescontoItem(String item, String acrescimoDesconto, String tipo, BigDecimal valor) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public void abrirVinculadoTEF(String conveniadaString, BigDecimal valorTransacao, String cupom) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public void imprimirVinculadoTEF(String texto) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public void fecharVinculadoTEF() {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public void cortarPapel() {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public boolean getECFCupomAberto() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return false;
     }
 
     @Override
     public String dadosUltimaReducaoGerar() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return "";
     }
 
     @Override
     public String getModelo() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return "";
     }
 
     @Override
     public String getSerie() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return "";
     }
 }

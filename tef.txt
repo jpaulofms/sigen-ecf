@@ -1,0 +1,12 @@
+versao="1.0"
+sequencial="2"
+retorno="1"
+servico="iniciar"
+aplicacao="SIGEN - SISTEMAS DE GESTAO DE NEGOCIOS"
+
+versao="1.0"
+sequencial="2"
+retorno="1"
+servico="iniciar"
+aplicacao="SIGEN - SISTEMAS DE GESTAO DE NEGOCIOS"
+

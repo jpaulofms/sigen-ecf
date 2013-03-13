@@ -8,6 +8,24 @@
  */
 package com.sigen.ecf.view;
 
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.AbstractAction;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
+import javax.swing.KeyStroke;
+
 import com.sigen.ecf.model.bean.BeanCliente;
 import com.sigen.ecf.model.bean.BeanCondicaoPagamento;
 import com.sigen.ecf.model.bean.BeanConveniada;
@@ -25,22 +43,6 @@ import com.sigen.ecf.vo.VOCheque;
 import com.sigen.ecf.vo.VOItemParcelaPagamento;
 import com.sigen.ecf.vo.VOParcelaPagamento;
 import com.sigen.ecf.vo.VOTransacaoTef;
-import java.awt.Color;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import javax.swing.AbstractAction;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JComponent;
-import javax.swing.JOptionPane;
-import javax.swing.KeyStroke;
 
 public class VIEWSelecionarFormaPagamento extends javax.swing.JDialog {
 

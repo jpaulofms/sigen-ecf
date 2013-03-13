@@ -4,12 +4,14 @@
  */
 package com.sigen.ecf.model.operacao.impl;
 
+import java.util.Map;
+
 import com.sigen.ecf.exception.OperacaoException;
+import com.sigen.ecf.infra.TEFService;
+import com.sigen.ecf.infra.impl.TEFServiceFactory;
 import com.sigen.ecf.model.operacao.IOperacao;
 import com.sigen.ecf.model.operacao.Operacao;
 import com.sigen.ecf.view.util.UTILBiblioteca;
-import com.sigen.ecf.view.util.UTILForegroundTef;
-import java.util.Map;
 
 /**
  * 
@@ -33,9 +35,12 @@ public class OPAdministradorTef extends Operacao implements IOperacao {
 
 	@Override
 	protected Map efetuar(Map parametros) throws OperacaoException {
+
+		TEFService tefService = TEFServiceFactory.getInstance()
+				.criarTEFService();
 		Map mpRetorno = parametros;
 
-		UTILForegroundTef.executaADM();
+		tefService.executaADM();
 
 		return mpRetorno;
 	}

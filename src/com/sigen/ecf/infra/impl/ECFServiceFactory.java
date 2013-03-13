@@ -5,24 +5,24 @@
 package com.sigen.ecf.infra.impl;
 
 /**
- *
+ * 
  * @author SIGEN 3
  */
 public class ECFServiceFactory {
 
-    private static ECFServiceFactory instance;
+	private static ECFServiceFactory instance;
 
-    private ECFServiceFactory() {
-    }
+	private ECFServiceFactory() {
+	}
 
-    public static ECFServiceFactory getInstance() {
-        if (instance == null) {
-            instance = new ECFServiceFactory();
-        }
-        return instance;
-    }
+	public static ECFServiceFactory getInstance() {
+		if (instance == null) {
+			instance = new ECFServiceFactory();
+		}
+		return instance;
+	}
 
-    public ECFService criarECFService() {
-        return new BematechECFService();
-    }
+	public ECFService criarECFService() {
+		return new AdaptorECFService();
+	}
 }
