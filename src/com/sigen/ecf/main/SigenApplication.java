@@ -50,11 +50,6 @@ public class SigenApplication {
 		System.setErr(new PrintStream(new BufferedOutputStream(
 				new FileOutputStream(new File("erros"))), true));
 
-		System.err.println("teste");
-
-		Exception ex = new Exception("serah q imprime?");
-		ex.printStackTrace();
-
 		configuracaoFontes();
 		movimentoAbertura();
 	}
