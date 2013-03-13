@@ -10,12 +10,10 @@ import java.util.Map;
 import javax.swing.JOptionPane;
 
 import com.sigen.ecf.exception.OperacaoException;
-import com.sigen.ecf.infra.TEFService;
-import com.sigen.ecf.infra.impl.TEFRedeEnum;
-import com.sigen.ecf.infra.impl.TEFServiceFactory;
-import com.sigen.ecf.infra.impl.TefForegroundService;
 import com.sigen.ecf.model.operacao.IOperacao;
 import com.sigen.ecf.model.operacao.Operacao;
+import com.sigen.ecf.view.util.TEFRedeEnum;
+import com.sigen.ecf.view.util.UTILForegroundTef;
 import com.sigen.ecf.vo.VOTef;
 import com.sigen.ecf.vo.VOTransacaoTef;
 
@@ -61,11 +59,8 @@ public class OPExecutarTef extends Operacao implements IOperacao {
 	private boolean realizarTransacoesTEF() {
 		Integer retorno = 1;
 
-		TEFService tefService = TEFServiceFactory.getInstance()
-				.criarTEFService();
-
 		for (VOTransacaoTef transacaoTef : lsTransacaoTef) {
-			if (tefService.verificaGerenciadorPadrao(true)) {
+			if (UTILForegroundTef.verificaGerenciadorPadrao(true)) {
 				if (transacaoTef.getNsu() == null
 						|| transacaoTef.getNsu().isEmpty()) {
 
@@ -82,10 +77,10 @@ public class OPExecutarTef extends Operacao implements IOperacao {
 						if (transacaoTef.getBeanConveniada().getDescricao()
 								.contains("BANESE")) {
 							if (tipoParcelamento.equals("C")) {
-								conveniada = TEFRedeEnum.REDECARD
+								conveniada = TEFRedeEnum.BANESE
 										.getIdentificador();
 							} else {
-								conveniada = TEFRedeEnum.BANESE
+								conveniada = TEFRedeEnum.REDECARD
 										.getIdentificador();
 							}
 						} else if ((transacaoTef.getBeanConveniada()
@@ -111,22 +106,22 @@ public class OPExecutarTef extends Operacao implements IOperacao {
 								.getNumeroParcelas());
 
 						retorno = 1;
-						retorno = tefService.realizaTransacao(objetoTef);
+						retorno = UTILForegroundTef.realizaTransacao(objetoTef);
 
 						/*
 						 * Retornos
 						 */
-						objetoTef.setNSU(TefForegroundService.NSU);
-						objetoTef.setNomeRede(TefForegroundService.nomeRede);
-						objetoTef.setData(TefForegroundService.data);
-						objetoTef.setHora(TefForegroundService.hora);
+						objetoTef.setNSU(UTILForegroundTef.NSU);
+						objetoTef.setNomeRede(UTILForegroundTef.nomeRede);
+						objetoTef.setData(UTILForegroundTef.data);
+						objetoTef.setHora(UTILForegroundTef.hora);
 
 						if (retorno == 1) {
 							transacaoTef.setNsu(objetoTef.getNSU());
 							transacaoTef
-									.setDataTransacao(TefForegroundService.data);
+									.setDataTransacao(UTILForegroundTef.data);
 							transacaoTef
-									.setHoraTransacao(TefForegroundService.hora);
+									.setHoraTransacao(UTILForegroundTef.hora);
 						} else {
 							break;
 						}
@@ -153,10 +148,7 @@ public class OPExecutarTef extends Operacao implements IOperacao {
 
 	private void cancelarTefPendentes() {
 		try {
-			TEFService tefService = TEFServiceFactory.getInstance()
-					.criarTEFService();
-
-			tefService.cancelaTefPendentes();
+			UTILForegroundTef.cancelaTefPendentes();
 		} catch (Exception ex) {
 			JOptionPane.showMessageDialog(null,
 					"Erro no Cancelamento dos TEF pendentes.",
